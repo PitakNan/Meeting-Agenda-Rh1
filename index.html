@@ -133,6 +133,38 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);
 .bar{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:8px}
 .bar>i{display:block;height:100%;background:var(--blue);width:0;transition:.2s}
 code.hl{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:13px}
+
+/* ── help / work flow ── */
+.flow{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.flow.one{margin-top:0}
+.node{flex:1;min-width:180px;border:1.5px solid var(--line);border-radius:12px;
+  padding:14px;background:#f8fafc;text-align:center;display:flex;flex-direction:column;gap:4px}
+.node .ni{font-size:26px}
+.node b{font-size:14.5px;color:var(--navy)}
+.node span{font-size:12.5px;color:var(--muted)}
+.node.opt{background:#fffdf5;border-color:#f0d98a}
+.flow .arrow{display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--blue);flex:none;padding:0 2px}
+.split{text-align:center;color:var(--gold);font-weight:600;font-size:13px;margin:12px 0 10px}
+.steps{margin:0;padding-left:22px;line-height:2}
+.steps li{padding-left:4px}
+.chip{display:inline-block;background:var(--navy);color:#fff;border-radius:8px;
+  padding:2px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.ways{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.way{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:flex;
+  flex-direction:column;gap:5px}
+.way .wi{font-size:24px}
+.way b{color:var(--navy)}
+.way span{font-size:13px;color:var(--muted)}
+.fork{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.forkcol{border-radius:12px;padding:16px;border:1.5px solid}
+.forkcol .fh{font-weight:700;font-size:15px;margin-bottom:8px}
+.forkcol p{margin:0 0 8px}
+.forkcol ul{margin:0;padding-left:20px;font-size:13.5px;line-height:1.8;color:#475569}
+.forkcol.keep{background:#f0fdf4;border-color:#bbf7d0}
+.forkcol.keep .fh{color:var(--ok)}
+.forkcol.pub{background:#fffbeb;border-color:#fde68a}
+.forkcol.pub .fh{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -141,6 +173,7 @@ code.hl{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:13px}
   <div class="wrap">
     <h1><a href="#/" style="text-decoration:none;color:#fff">📋 ระบบวาระการประชุม</a>
       <small>เขตสุขภาพที่ 1</small></h1>
+    <a class="btn ghost sm" href="#/help">📖 วิธีใช้</a>
     <button class="btn ghost sm" id="keybtn" onclick="askKey()">🔑 เข้าสู่ระบบ</button>
   </div>
 </div>
@@ -324,6 +357,125 @@ async function extractPdf(file) {
   return out.join('\n');
 }
 
+/* ═══════════════ หน้าวิธีใช้ / Work flow ═══════════════ */
+function helpPage() {
+  const app = $('#app');
+  app.innerHTML = `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px">
+    <a class="btn sec sm" href="#/">← กลับรายการ</a>
+    ${KEY ? `<a class="btn sm" href="#/new">＋ สร้างวาระใหม่</a>` : ''}
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:20px">📖 Work flow การทำงานทั้งหมด</h2>
+    <p class="sub">ระบบนี้ให้คุณ <b>สร้างระเบียบวาระในเว็บนี้</b> โดยเก็บไฟล์ไว้ที่คลังของ webnew
+      — จะเผยแพร่เป็นข่าวบน webnew หรือไม่ก็ได้</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">◆</span>ภาพรวม — ของแต่ละอย่างอยู่ที่ไหน</h2>
+    <div class="flow">
+      <div class="node">
+        <div class="ni">🖥️</div>
+        <b>เว็บ GitHub Pages</b>
+        <span>หน้าจอที่คุณใช้งาน + หน้าวาระสาธารณะ</span>
+      </div>
+      <div class="arrow">⇄</div>
+      <div class="node">
+        <div class="ni">☁️</div>
+        <b>Cloudflare</b>
+        <span>ฐานข้อมูลวาระ (แก้ได้ตลอด ไม่ต้อง deploy)</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="ni">📁</div>
+        <b>คลังไฟล์ webnew</b>
+        <span>เก็บไฟล์ PDF ให้ลิงก์สาธารณะถาวร</span>
+      </div>
+    </div>
+    <div class="split">⟶ ตัวเลือก: กดปุ่ม 🚀</div>
+    <div class="flow one">
+      <div class="node opt">
+        <div class="ni">📰</div>
+        <b>ข่าวบน webnew /news/&lt;id&gt;</b>
+        <span>โผล่ในระบบข่าวของ webnew — เฉพาะเมื่อกด “ส่งขึ้น webnew”</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>ขั้นตอนการทำงาน</h2>
+    <ol class="steps">
+      <li><b>เข้าระบบ</b> — กด 🔑 มุมขวาบน ใส่รหัสผู้ดูแล</li>
+      <li><b>สร้างวาระใหม่</b> — กดปุ่ม <span class="chip">＋ สร้างวาระใหม่</span></li>
+      <li><b>กรอกหัวเรื่อง</b> — ชื่อข่าว, ชื่อการประชุม, ครั้งที่, วันที่, เวลา, สถานที่, Zoom</li>
+      <li><b>ใส่ระเบียบวาระ</b> — เลือกวิธีใดก็ได้ (ดูการ์ดถัดไป) ทุกวิธีมาจบที่ตารางเดียวกัน</li>
+      <li><b>แนบไฟล์ PDF รายข้อ</b> — ลาก PDF วางที่ช่องของแต่ละข้อ
+        → ไฟล์ไปเก็บที่คลัง webnew แล้วเสียบลิงก์ให้อัตโนมัติ</li>
+      <li><b>บันทึก</b> — กด 💾 (เข้าฐานข้อมูลทันที แก้ใหม่เมื่อไรก็ได้)</li>
+      <li><b>ดูหน้าจริง</b> — กด 👁 เพื่อดูหน้าวาระที่ลิงก์ของเว็บนี้</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>นำเข้าวาระได้ 4 แบบ</h2>
+    <div class="ways">
+      <div class="way"><div class="wi">✍️</div><b>กรอกเอง</b>
+        <span>กด ＋เพิ่มระเบียบวาระ / ＋ข้อย่อย ทีละข้อ</span></div>
+      <div class="way"><div class="wi">📋</div><b>วางข้อความ</b>
+        <span>ก๊อปวาระทั้งก้อนจาก Word มาวาง ระบบแยก “ระเบียบวาระที่ N” และข้อย่อยให้</span></div>
+      <div class="way"><div class="wi">📄</div><b>ไฟล์ Word/PDF</b>
+        <span>ลากไฟล์วาระมาวาง ดึงข้อความออกมา (PDF ควรตรวจทานก่อน)</span></div>
+      <div class="way"><div class="wi">📁</div><b>โฟลเดอร์ PDF</b>
+        <span>ลากทั้งโฟลเดอร์ จับคู่ไฟล์ <code class="hl">4.1_xxx.pdf</code> เข้าข้อ 4.1 ให้เอง</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>ทางแยกสำคัญ — จะเผยแพร่ที่ไหน</h2>
+    <div class="fork">
+      <div class="forkcol keep">
+        <div class="fh">เก็บไว้ใน GitHub เท่านั้น</div>
+        <p>ไม่ต้องกดอะไรเพิ่ม ✅</p>
+        <ul>
+          <li>วาระอยู่แค่ในเว็บนี้ เปิดด้วยลิงก์ของเว็บนี้</li>
+          <li><b>ไม่โผล่</b>ในระบบข่าวของ webnew</li>
+          <li>ไฟล์ PDF ยังฝากที่ webnew (เปิดได้ถ้ารู้ URL ตรง)</li>
+        </ul>
+      </div>
+      <div class="forkcol pub">
+        <div class="fh">ส่งขึ้นข่าว webnew</div>
+        <p>กดปุ่ม <span class="chip">🚀 ส่งขึ้น webnew</span></p>
+        <ul>
+          <li>ยังไม่เคยส่ง = สร้างข่าวใหม่หมวด “ประชุม”</li>
+          <li>เคยส่งแล้ว = อัปเดตทับข่าวเดิม</li>
+          <li>เห็นสาธารณะทันที และ <b>ลบเองไม่ได้</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span>แก้ไขภายหลัง</h2>
+    <p class="sub" style="margin:0">รายการประชุม → <span class="chip">แก้ไข</span> → แก้ → 💾
+      · ถ้าเคยส่งขึ้น webnew แล้ว กด 🚀 อีกครั้งเพื่ออัปเดตข่าวเดิมให้ตรงกัน</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">◆</span>ที่เก็บของแต่ละอย่าง</h2>
+    <div style="overflow-x:auto">
+    <table class="tbl"><thead><tr>
+      <th>สิ่งของ</th><th>เก็บที่</th><th>ถ้าเลิกใช้ระบบนี้</th>
+    </tr></thead><tbody>
+      <tr><td>หน้าเว็บ (โค้ด)</td><td>GitHub repo <code class="hl">Meeting-Agenda-Rh1</code></td><td>—</td></tr>
+      <tr><td>ข้อมูลวาระ</td><td>Cloudflare (ฐานข้อมูล)</td><td>ต้อง export เก็บก่อน</td></tr>
+      <tr><td>ไฟล์ PDF</td><td>เซิร์ฟเวอร์ webnew (ถาวร)</td><td>✅ ลิงก์ยังใช้ได้</td></tr>
+      <tr><td>ข่าว (ถ้ากดส่ง)</td><td>webnew <code class="hl">/news/&lt;id&gt;</code></td><td>✅ อยู่ที่ webnew</td></tr>
+    </tbody></table>
+    </div>
+  </div>`;
+}
+
 /* ═══════════════ router ═══════════════ */
 function route() {
   const h = location.hash.replace(/^#/, '') || '/';
@@ -332,6 +484,7 @@ function route() {
   if (mv) return viewPage(mv[1]);
   if (me) return editPage(me[1]);
   if (h === '/new') return createNew();
+  if (h === '/help') return helpPage();
   return listPage();
 }
 window.addEventListener('hashchange', route);
@@ -349,7 +502,8 @@ async function listPage() {
       <div class="row" style="justify-content:space-between;margin-bottom:14px">
         <div>
           <h2>รายการประชุม</h2>
-          <p class="sub" style="margin:0">ทั้งหมด ${rows.length} เรื่อง · กดชื่อเรื่องเพื่อดูหน้าวาระ</p>
+          <p class="sub" style="margin:0">ทั้งหมด ${rows.length} เรื่อง · กดชื่อเรื่องเพื่อดูหน้าวาระ ·
+            <a href="#/help">📖 วิธีใช้งาน</a></p>
         </div>
         ${KEY ? `<a class="btn" href="#/new">＋ สร้างวาระใหม่</a>` : ''}
       </div>
