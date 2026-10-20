@@ -28,8 +28,10 @@ a{color:var(--blue)}
 /* ── topbar ── */
 .top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
   padding:14px 0;margin-bottom:22px;box-shadow:0 4px 20px rgba(30,60,114,.25)}
-.top .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0}
-.top h1{font-size:18px;margin:0;font-weight:700;flex:1;min-width:0}
+.top .wrap{display:flex;align-items:center;gap:10px;padding-bottom:0;flex-wrap:wrap}
+.top h1{font-size:18px;margin:0;font-weight:700;flex:1;min-width:140px}
+.top .help{background:#fff;color:var(--navy);border:none;font-weight:700}
+.top .help:hover{background:#eaf1fb;color:var(--navy)}
 .top h1 small{display:block;font-size:12px;font-weight:400;opacity:.75}
 .top a,.top button{color:#fff}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
@@ -173,7 +175,7 @@ code.hl{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:13px}
   <div class="wrap">
     <h1><a href="#/" style="text-decoration:none;color:#fff">📋 ระบบวาระการประชุม</a>
       <small>เขตสุขภาพที่ 1</small></h1>
-    <a class="btn ghost sm" href="#/help">📖 วิธีใช้</a>
+    <a class="btn sm help" href="#/help">📖 วิธีใช้ / Help</a>
     <button class="btn ghost sm" id="keybtn" onclick="askKey()">🔑 เข้าสู่ระบบ</button>
   </div>
 </div>
@@ -502,10 +504,12 @@ async function listPage() {
       <div class="row" style="justify-content:space-between;margin-bottom:14px">
         <div>
           <h2>รายการประชุม</h2>
-          <p class="sub" style="margin:0">ทั้งหมด ${rows.length} เรื่อง · กดชื่อเรื่องเพื่อดูหน้าวาระ ·
-            <a href="#/help">📖 วิธีใช้งาน</a></p>
+          <p class="sub" style="margin:0">ทั้งหมด ${rows.length} เรื่อง · กดชื่อเรื่องเพื่อดูหน้าวาระ</p>
         </div>
-        ${KEY ? `<a class="btn" href="#/new">＋ สร้างวาระใหม่</a>` : ''}
+        <div class="row">
+          <a class="btn sec" href="#/help">📖 วิธีใช้ / Work flow</a>
+          ${KEY ? `<a class="btn" href="#/new">＋ สร้างวาระใหม่</a>` : ''}
+        </div>
       </div>
       ${!KEY ? `<div class="note">🔑 กด <b>เข้าสู่ระบบ</b> มุมขวาบน เพื่อสร้างหรือแก้ไขวาระ</div>` : ''}
       <div class="f"><input type="text" id="q" placeholder="ค้นหาชื่อเรื่อง / ครั้งที่…"></div>
