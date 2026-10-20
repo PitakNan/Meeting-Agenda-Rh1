@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meeting-agenda-rh1",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "AGENDA", "class_name": "AgendaStore" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AgendaStore"] }
+  ],
+  "vars": {
+    "WEBNEW_BASE": "https://webnew.rh1.go.th",
+    "WEBNEW_AKEY": "RH1_SECURE_2026",
+    "WEBNEW_ROOT": "cfo"
+  }
+}

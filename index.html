@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบวาระการประชุม เขตสุขภาพที่ 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --navy:#1e3c72; --navy2:#2a5298; --blue:#2563a8;
+  --ink:#1a2b42; --muted:#64748b; --line:#e2e8f0;
+  --bg:#f1f5f9; --card:#fff; --gold:#b98900;
+  --ok:#2e7d32; --okbg:#e8f5e9; --warn:#b45309; --warnbg:#fef3c7;
+  --danger:#b91c1c; --dangerbg:#fee2e2;
+  --radius:14px; --shadow:0 4px 6px rgba(26,58,92,.05),0 10px 24px rgba(26,58,92,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Sarabun',system-ui,sans-serif;font-size:15px;line-height:1.65;
+  overflow-wrap:anywhere;}
+a{color:var(--blue)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 60px}
+
+/* ── topbar ── */
+.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
+  padding:14px 0;margin-bottom:22px;box-shadow:0 4px 20px rgba(30,60,114,.25)}
+.top .wrap{display:flex;align-items:center;gap:14px;padding-bottom:0}
+.top h1{font-size:18px;margin:0;font-weight:700;flex:1;min-width:0}
+.top h1 small{display:block;font-size:12px;font-weight:400;opacity:.75}
+.top a,.top button{color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:none;border-radius:10px;padding:10px 18px;font:600 14px 'Sarabun',sans-serif;
+  cursor:pointer;background:var(--blue);color:#fff;text-decoration:none;
+  min-height:44px;transition:.15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.08);text-decoration:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4)}
+.btn.sec{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.btn.sec:hover{background:#f8fafc}
+.btn.danger{background:var(--danger)}
+.btn.sm{padding:6px 12px;min-height:36px;font-size:13px;border-radius:8px}
+
+/* ── cards ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:22px;margin-bottom:20px}
+.card h2{font-size:17px;margin:0 0 4px}
+.card h2 .n{display:inline-flex;width:26px;height:26px;border-radius:8px;
+  background:var(--navy);color:#fff;font-size:13px;align-items:center;
+  justify-content:center;margin-right:9px;vertical-align:-4px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+
+/* ── form ── */
+label{display:block;font-size:13px;font-weight:600;color:#475569;margin:0 0 5px}
+input[type=text],input[type=password],textarea,select{
+  width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 13px;
+  font:400 15px 'Sarabun',sans-serif;background:#fff;color:var(--ink);min-height:44px}
+textarea{min-height:150px;line-height:1.7;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,168,.12)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.f{margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ── table ── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{background:#f8fafc;color:#475569;font-size:13px;text-align:left;
+  padding:12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.tbl td{padding:12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.tbl tr:hover td{background:#f0f7ff}
+.pill{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:600}
+.pill.draft{background:var(--warnbg);color:var(--warn)}
+.pill.pub{background:var(--okbg);color:var(--ok)}
+
+/* ── tabs ── */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{padding:10px 16px;border-radius:10px;background:#eef2f7;color:#475569;
+  font-weight:600;font-size:14px;cursor:pointer;border:none;min-height:44px}
+.tab.on{background:var(--navy);color:#fff}
+
+/* ── agenda editor ── */
+.item{border:1.5px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.item>.hd{background:#f8fafc;padding:10px 12px;display:flex;gap:8px;align-items:center;
+  border-bottom:1px solid var(--line);flex-wrap:wrap}
+.item>.hd .no{width:58px;flex:none}
+.item>.hd .ti{flex:1;min-width:150px}
+.kids{padding:10px 12px}
+.kid{display:flex;gap:8px;align-items:flex-start;padding:9px 0;
+  border-bottom:1px dashed #eef2f7;flex-wrap:wrap}
+.kid:last-child{border-bottom:none}
+.kid .no{width:64px;flex:none}
+.kid .ti{flex:1;min-width:160px}
+.kid .fileline{flex-basis:100%;font-size:12.5px;color:var(--muted);
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kid .fileline a{font-weight:600}
+.iconbtn{border:1px solid var(--line);background:#fff;border-radius:8px;
+  width:36px;height:36px;cursor:pointer;color:#475569;font-size:15px;flex:none}
+.iconbtn:hover{background:#f1f5f9}
+.iconbtn.x:hover{background:var(--dangerbg);color:var(--danger)}
+
+/* ── dropzone ── */
+.dz{border:2px dashed #cbd5e1;border-radius:12px;padding:26px;text-align:center;
+  color:var(--muted);background:#f8fafc;cursor:pointer}
+.dz.over{border-color:var(--blue);background:#eff6ff;color:var(--blue)}
+.dz b{display:block;color:var(--ink);font-size:15px;margin-bottom:3px}
+
+/* ── preview (หน้าวาระจริง) ── */
+.agenda{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:34px}
+.agenda .ahead{text-align:center;font-weight:700;margin:0 0 4px}
+.agenda .stars{text-align:center;font-weight:700;margin:14px 0 18px;color:var(--muted)}
+.agenda .lv1{font-weight:700;margin:16px 0 4px}
+.agenda .lv2{margin:0 0 4px;padding-left:46px}
+.agenda .dl{text-align:center;margin:10px 0 0}
+@media(max-width:640px){
+  .agenda{padding:20px}
+  .agenda .lv2{padding-left:20px}
+  .wrap{padding:0 10px 50px}
+  .card{padding:16px}
+  .hide-sm{display:none}
+}
+
+/* ── misc ── */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:99;
+  background:var(--ink);color:#fff;padding:12px 20px;border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px;max-width:92vw}
+.toast.err{background:var(--danger)}
+.note{background:var(--warnbg);color:#78350f;border-radius:10px;padding:12px 14px;
+  font-size:13.5px;margin-bottom:14px}
+.empty{text-align:center;color:var(--muted);padding:50px 10px}
+.bar{height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;background:var(--blue);width:0;transition:.2s}
+code.hl{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <h1><a href="#/" style="text-decoration:none;color:#fff">📋 ระบบวาระการประชุม</a>
+      <small>เขตสุขภาพที่ 1</small></h1>
+    <button class="btn ghost sm" id="keybtn" onclick="askKey()">🔑 เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<script>
+/* ═══════════════ config ═══════════════ */
+const API = 'https://meeting-agenda-rh1.pitaknan.workers.dev';
+const WEBNEW = 'https://webnew.rh1.go.th';
+let KEY = localStorage.getItem('ma_key') || '';
+let M = null;            // meeting ที่กำลังแก้
+let TAB = 'form';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ═══════════════ helpers ═══════════════ */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function toast(msg, err) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (err ? ' err' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), err ? 5200 : 2600);
+}
+
+async function api(path, opts = {}) {
+  const h = { ...(opts.headers || {}) };
+  if (KEY) h['x-admin-key'] = KEY;
+  if (opts.body && !(opts.body instanceof FormData)) h['content-type'] = 'application/json';
+  const res = await fetch(API + path, { ...opts, headers: h });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
+function syncKeyBtn() {
+  $('#keybtn').textContent = KEY ? '🔓 ออกจากระบบ' : '🔑 เข้าสู่ระบบ';
+  $('#keybtn').onclick = KEY
+    ? () => { KEY = ''; localStorage.removeItem('ma_key'); syncKeyBtn(); route(); toast('ออกจากระบบแล้ว'); }
+    : askKey;
+}
+
+async function askKey() {
+  const k = prompt('รหัสผ่านผู้ดูแลระบบ');
+  if (!k) return;
+  const r = await fetch(API + '/api/login', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ key: k })
+  }).then(r => r.json());
+  if (r.ok) { KEY = k; localStorage.setItem('ma_key', k); syncKeyBtn(); route(); toast('เข้าสู่ระบบแล้ว'); }
+  else toast('รหัสผ่านไม่ถูกต้อง', true);
+}
+
+/* ═══════════════ สร้าง HTML วาระ (ตรงกับฝั่ง Worker) ═══════════════ */
+const INDENT = '&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;';
+
+function renderAgendaHtml(m) {
+  const out = [];
+  const C = h => out.push(`<p style="text-align: center;"><strong>${h}</strong></p>`);
+  [m.title,
+   m.dateText && m.timeText ? `${m.dateText} เวลา ${m.timeText}` : (m.dateText || m.timeText),
+   m.place, m.zoom].filter(Boolean).forEach(l => C(esc(l)));
+  C('*********************************************');
+  if (m.agendaPdf && m.agendaPdf.url)
+    out.push(`<p style="text-align: center;"><a href="${esc(m.agendaPdf.url)}" target="_blank">ดาวน์โหลดระเบียบวาระการประชุม (PDF)</a></p>`);
+  out.push('<p style="text-align: center;">&nbsp;</p>');
+  for (const it of m.items || []) {
+    out.push(`<p><strong>ระเบียบวาระที่ </strong><strong>${esc(it.no)} ${esc(it.title)}</strong></p>`);
+    for (const c of it.children || []) {
+      const label = esc(c.title || '');
+      const body = c.url ? `<a href="${esc(c.url)}" target="_blank">${label}</a>` : label;
+      out.push(`<p>${INDENT}${esc(c.no)} ${body}</p>`);
+    }
+  }
+  return out.join('\n');
+}
+
+/* ═══════════════ ตัวแยกวาระจากข้อความ ═══════════════ */
+const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
+const arabic = s => String(s).replace(/[๐-๙]/g, d => THAI_DIGITS.indexOf(d));
+
+// ฟอนต์ PDF ราชการบางชุดซ่อนสระ/วรรณยุกต์ไว้ใน Private Use Area
+const PUA = Object.fromEntries(Object.entries({
+  0xF701:'ิ', 0xF702:'ี', 0xF703:'ึ',
+  0xF705:'้', 0xF706:'้', 0xF70B:'้',
+  0xF70A:'่', 0xF713:'่',
+  0xF70E:'์', 0xF710:'ั', 0xF712:'็',
+}).map(([k, v]) => [String.fromCharCode(Number(k)), v]));
+const fixPua = s => String(s).replace(/[\uE000-\uF8FF]/g, c => PUA[c] ?? '');
+
+/**
+ * แยกข้อความวาระเป็นโครงสร้าง + เดาส่วนหัว
+ * รองรับ "ระเบียบวาระที่ 4 ..." / "วาระที่ 4 ..." และข้อย่อย 4.1 / 4.1.1
+ */
+function parseAgendaText(raw) {
+  const text = arabic(fixPua(raw));
+  const lines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim());
+  const items = [], head = {};
+  let lastKid = null, seenAgenda = false;
+
+  const reTop = /^(?:ระเบียบ)?วาระ(?:ที่)?\s*([0-9]+)\s*[.)：:]?\s*(.*)$/;
+  const reKid = /^([0-9]+(?:\.[0-9]+)+)\s*[.)]?\s*(.*)$/;
+
+  for (const line of lines) {
+    if (!line) { continue; }
+    let m = line.match(reTop);
+    if (m) {
+      items.push({ no: m[1], title: m[2].trim(), children: [] });
+      lastKid = null; seenAgenda = true; continue;
+    }
+    m = line.match(reKid);
+    if (m) {
+      const no = m[1], parentNo = no.split('.')[0];
+      let parent = items.find(i => i.no === parentNo);
+      if (!parent) { parent = { no: parentNo, title: '', children: [] }; items.push(parent); }
+      lastKid = { no, title: m[2].trim(), url: '', name: '' };
+      parent.children.push(lastKid);
+      seenAgenda = true; continue;
+    }
+    if (!seenAgenda) {
+      // ส่วนหัวก่อนถึงวาระแรก
+      if (/^วันที่|^วัน\s/.test(line)) {
+        const t = line.match(/เวลา\s*(.+)$/);
+        head.dateText = line.replace(/^วันที่\s*/, '').replace(/\s*เวลา\s*.+$/, '').trim();
+        if (t) head.timeText = t[1].replace(/\s*น\.?\s*$/, ' น.').trim();
+      } else if (/^ณ\s/.test(line)) {
+        head.place = line;
+      } else if (/zoom|webex|ออนไลน์|ระบบ/i.test(line)) {
+        head.zoom = line;
+      } else if (!head.title && /ประชุม/.test(line) && !/^\*+$/.test(line)) {
+        head.title = line;
+      }
+      continue;
+    }
+    // บรรทัดต่อเนื่องของข้อย่อย/วาระล่าสุด
+    if (/^\*+$/.test(line)) continue;
+    if (lastKid) lastKid.title = (lastKid.title + ' ' + line).trim();
+    else if (items.length) items[items.length - 1].title =
+      (items[items.length - 1].title + ' ' + line).trim();
+  }
+  return { items, head };
+}
+
+/* ── ดึงข้อความจาก .docx / .pdf ── */
+async function extractDocx(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  return xml
+    .replace(/<w:tab[^>]*\/>/g, ' ')
+    .replace(/<\/w:p>/g, '\n')
+    .replace(/<w:br[^>]*\/>/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+}
+
+async function extractPdf(file) {
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const out = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const tc = await (await pdf.getPage(p)).getTextContent();
+    let line = '', lastY = null;
+    for (const it of tc.items) {
+      const y = Math.round(it.transform[5]);
+      if (lastY !== null && Math.abs(y - lastY) > 3) { out.push(line); line = ''; }
+      line += it.str;
+      lastY = y;
+    }
+    out.push(line);
+  }
+  return out.join('\n');
+}
+
+/* ═══════════════ router ═══════════════ */
+function route() {
+  const h = location.hash.replace(/^#/, '') || '/';
+  const mv = h.match(/^\/m\/([A-Za-z0-9_-]+)$/);
+  const me = h.match(/^\/edit\/([A-Za-z0-9_-]+)$/);
+  if (mv) return viewPage(mv[1]);
+  if (me) return editPage(me[1]);
+  if (h === '/new') return createNew();
+  return listPage();
+}
+window.addEventListener('hashchange', route);
+
+/* ═══════════════ หน้ารายการประชุม ═══════════════ */
+async function listPage() {
+  const app = $('#app');
+  app.innerHTML = `<div class="card"><p class="sub">กำลังโหลด…</p></div>`;
+  let rows = [];
+  try { rows = await api('/api/meetings'); }
+  catch (e) { app.innerHTML = `<div class="card"><p class="sub">โหลดไม่สำเร็จ: ${esc(e.message)}</p></div>`; return; }
+
+  app.innerHTML = `
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:14px">
+        <div>
+          <h2>รายการประชุม</h2>
+          <p class="sub" style="margin:0">ทั้งหมด ${rows.length} เรื่อง · กดชื่อเรื่องเพื่อดูหน้าวาระ</p>
+        </div>
+        ${KEY ? `<a class="btn" href="#/new">＋ สร้างวาระใหม่</a>` : ''}
+      </div>
+      ${!KEY ? `<div class="note">🔑 กด <b>เข้าสู่ระบบ</b> มุมขวาบน เพื่อสร้างหรือแก้ไขวาระ</div>` : ''}
+      <div class="f"><input type="text" id="q" placeholder="ค้นหาชื่อเรื่อง / ครั้งที่…"></div>
+      ${rows.length ? `
+      <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr>
+        <th>ชื่อเรื่อง</th><th class="hide-sm">วันที่</th><th class="hide-sm">วาระ</th>
+        <th class="hide-sm">ไฟล์</th><th>สถานะ</th><th></th>
+      </tr></thead><tbody id="tb">${rows.map(rowHtml).join('')}</tbody></table>
+      </div>` : `<div class="empty">ยังไม่มีวาระในระบบ</div>`}
+    </div>`;
+
+  const q = $('#q');
+  if (q) q.oninput = () => {
+    const v = q.value.trim().toLowerCase();
+    $('#tb').innerHTML = rows.filter(r =>
+      (r.title + ' ' + (r.meetingNo || '')).toLowerCase().includes(v)).map(rowHtml).join('');
+  };
+}
+
+function rowHtml(r) {
+  return `<tr>
+    <td><a href="#/m/${r.id}"><b>${esc(r.title || '(ไม่มีชื่อ)')}</b></a>
+      ${r.meetingNo ? `<div style="font-size:12.5px;color:var(--muted)">ครั้งที่ ${esc(r.meetingNo)}</div>` : ''}</td>
+    <td class="hide-sm">${esc(r.dateText || '-')}</td>
+    <td class="hide-sm">${r.itemCount}</td>
+    <td class="hide-sm">${r.fileCount}</td>
+    <td>${r.newsId
+      ? `<span class="pill pub">ขึ้น webnew</span>`
+      : `<span class="pill draft">ร่าง</span>`}</td>
+    <td style="text-align:right;white-space:nowrap">
+      ${KEY ? `<a class="btn sec sm" href="#/edit/${r.id}">แก้ไข</a>` : ''}
+      ${r.newsId ? `<a class="btn sec sm" href="${WEBNEW}/news/${r.newsId}" target="_blank">↗</a>` : ''}
+    </td></tr>`;
+}
+
+/* ═══════════════ สร้างใหม่ ═══════════════ */
+async function createNew() {
+  if (!KEY) { toast('ต้องเข้าสู่ระบบก่อน', true); location.hash = '#/'; return; }
+  try {
+    const m = await api('/api/meetings', {
+      method: 'POST',
+      body: JSON.stringify({ title: 'วาระการประชุม (ร่าง)', items: [] })
+    });
+    location.hash = '#/edit/' + m.id;
+  } catch (e) { toast(e.message, true); location.hash = '#/'; }
+}
+
+/* ═══════════════ หน้าวาระสาธารณะ ═══════════════ */
+async function viewPage(id) {
+  const app = $('#app');
+  app.innerHTML = `<div class="card"><p class="sub">กำลังโหลด…</p></div>`;
+  let m;
+  try { m = await api('/api/meetings/' + id); }
+  catch (e) { app.innerHTML = `<div class="card"><p class="sub">ไม่พบวาระนี้</p></div>`; return; }
+  app.innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:14px">
+      <a class="btn sec sm" href="#/">← กลับรายการ</a>
+      <div class="row">
+        ${m.newsId ? `<a class="btn sec sm" href="${WEBNEW}/news/${m.newsId}" target="_blank">ดูบน webnew ↗</a>` : ''}
+        ${KEY ? `<a class="btn sm" href="#/edit/${m.id}">แก้ไขวาระ</a>` : ''}
+      </div>
+    </div>
+    <div class="agenda">${agendaView(m)}</div>`;
+}
+
+function agendaView(m) {
+  const out = [];
+  [m.title,
+   m.dateText && m.timeText ? `${m.dateText} เวลา ${m.timeText}` : (m.dateText || m.timeText),
+   m.place, m.zoom].filter(Boolean).forEach(l => out.push(`<p class="ahead">${esc(l)}</p>`));
+  out.push('<p class="stars">*********************************************</p>');
+  if (m.agendaPdf && m.agendaPdf.url)
+    out.push(`<p class="dl"><a href="${esc(m.agendaPdf.url)}" target="_blank">📄 ดาวน์โหลดระเบียบวาระการประชุม (PDF)</a></p>`);
+  for (const it of m.items || []) {
+    out.push(`<p class="lv1">ระเบียบวาระที่ ${esc(it.no)} ${esc(it.title)}</p>`);
+    for (const c of it.children || []) {
+      const label = esc(c.title || '');
+      out.push(`<p class="lv2">${esc(c.no)} ${c.url
+        ? `<a href="${esc(c.url)}" target="_blank">${label}</a>` : label}</p>`);
+    }
+  }
+  if (!(m.items || []).length) out.push('<div class="empty">ยังไม่ได้ใส่ระเบียบวาระ</div>');
+  return out.join('\n');
+}
+
+/* ═══════════════ หน้าสร้าง/แก้ไขวาระ ═══════════════ */
+async function editPage(id) {
+  if (!KEY) { toast('ต้องเข้าสู่ระบบก่อน', true); location.hash = '#/m/' + id; return; }
+  const app = $('#app');
+  app.innerHTML = `<div class="card"><p class="sub">กำลังโหลด…</p></div>`;
+  try { M = await api('/api/meetings/' + id); }
+  catch (e) { app.innerHTML = `<div class="card"><p class="sub">ไม่พบวาระนี้</p></div>`; return; }
+  M.items = M.items || [];
+  drawEditor();
+}
+
+function drawEditor() {
+  $('#app').innerHTML = `
+  <div class="row" style="justify-content:space-between;margin-bottom:14px">
+    <a class="btn sec sm" href="#/">← กลับรายการ</a>
+    <div class="row">
+      <button class="btn sec sm" onclick="copyHtml()">📋 คัดลอก HTML</button>
+      <a class="btn sec sm" href="#/m/${M.id}">👁 ดูหน้าจริง</a>
+      <button class="btn sm" onclick="save(1)">💾 บันทึก</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>หัวเรื่องการประชุม</h2>
+    <p class="sub">ข้อความ 4 บรรทัดนี้จะอยู่กลางหน้า เหนือแถวดอกจัน</p>
+    <div class="f"><label>ชื่อการประชุม (บรรทัดที่ 1)</label>
+      <input type="text" id="h_title" value="${esc(M.title)}"></div>
+    <div class="grid">
+      <div class="f"><label>ครั้งที่</label><input type="text" id="h_no" value="${esc(M.meetingNo)}" placeholder="1/2570"></div>
+      <div class="f"><label>วันที่</label><input type="text" id="h_date" value="${esc(M.dateText)}" placeholder="19 ตุลาคม 2569"></div>
+      <div class="f"><label>เวลา</label><input type="text" id="h_time" value="${esc(M.timeText)}" placeholder="13.30 – 16.00 น."></div>
+    </div>
+    <div class="f"><label>สถานที่</label>
+      <input type="text" id="h_place" value="${esc(M.place)}" placeholder="ณ ห้องประชุมสำนักงานเขตสุขภาพที่ 1 …"></div>
+    <div class="f"><label>ระบบออนไลน์</label>
+      <input type="text" id="h_zoom" value="${esc(M.zoom)}" placeholder="และผ่านระบบ Zoom Meeting ID: … Pass: …"></div>
+    <div class="f"><label>ไฟล์ระเบียบวาระรวม (PDF)</label>
+      <div class="row">
+        <input type="file" id="agendaPdf" accept="application/pdf" style="flex:1;min-width:200px">
+        <span id="agendaPdfInfo" style="font-size:13px;color:var(--muted)">
+          ${M.agendaPdf && M.agendaPdf.url ? `<a href="${esc(M.agendaPdf.url)}" target="_blank">${esc(M.agendaPdf.name)}</a>` : 'ยังไม่มีไฟล์'}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>นำเข้าระเบียบวาระ</h2>
+    <p class="sub">เลือกวิธีใดก็ได้ ทุกวิธีจะมาจบที่ตารางวาระด้านล่างให้ตรวจก่อนบันทึก</p>
+    <div class="tabs">
+      <button class="tab ${TAB==='form'?'on':''}"  onclick="setTab('form')">✍️ กรอกเอง</button>
+      <button class="tab ${TAB==='paste'?'on':''}" onclick="setTab('paste')">📋 วางข้อความ</button>
+      <button class="tab ${TAB==='file'?'on':''}"  onclick="setTab('file')">📄 ไฟล์ Word/PDF</button>
+      <button class="tab ${TAB==='folder'?'on':''}" onclick="setTab('folder')">📁 โฟลเดอร์ PDF</button>
+    </div>
+    <div id="tabbody"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>ระเบียบวาระ</h2>
+    <p class="sub">ลาก PDF มาวางที่ช่องของแต่ละข้อย่อยเพื่อแนบไฟล์ได้ทันที</p>
+    <div id="items"></div>
+    <button class="btn sec" onclick="addItem()">＋ เพิ่มระเบียบวาระ</button>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span>เผยแพร่</h2>
+    <div class="row">
+      <button class="btn" onclick="pushWebnew()">🚀 ส่งขึ้น webnew</button>
+      ${M.newsId ? `<a class="btn sec" href="${WEBNEW}/news/${M.newsId}" target="_blank">ดูข่าวบน webnew ↗ (newsID ${esc(M.newsId)})</a>` : ''}
+      <button class="btn danger sm" onclick="delMeeting()" style="margin-left:auto">🗑 ลบวาระนี้</button>
+    </div>
+    <p class="sub" style="margin:12px 0 0">
+      ระบบจะสร้างข่าวใหม่ในหมวด “ประชุม” ให้อัตโนมัติ หรืออัปเดตข่าวเดิมถ้าเคยส่งแล้ว
+      — <b>ตรวจหน้าจริงก่อนกดทุกครั้ง</b> เพราะจะเห็นสาธารณะทันที</p>
+  </div>`;
+
+  // bind หัวเรื่อง
+  const map = { h_title:'title', h_no:'meetingNo', h_date:'dateText',
+                h_time:'timeText', h_place:'place', h_zoom:'zoom' };
+  for (const [el, k] of Object.entries(map))
+    $('#' + el).oninput = e => { M[k] = e.target.value; };
+
+  $('#agendaPdf').onchange = async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('#agendaPdfInfo').textContent = 'กำลังอัปโหลด…';
+    try {
+      await save(0);
+      const r = await uploadFile(f, '');
+      M.agendaPdf = r;
+      await save(0);
+      $('#agendaPdfInfo').innerHTML = `<a href="${esc(r.url)}" target="_blank">${esc(r.name)}</a>`;
+      toast('แนบไฟล์วาระรวมแล้ว');
+    } catch (err) { $('#agendaPdfInfo').textContent = 'ผิดพลาด'; toast(err.message, true); }
+  };
+
+  drawTab();
+  drawItems();
+}
+
+function setTab(t) { TAB = t; document.querySelectorAll('.tab').forEach(b =>
+  b.classList.toggle('on', b.textContent.includes(
+    {form:'กรอกเอง',paste:'วางข้อความ',file:'ไฟล์',folder:'โฟลเดอร์'}[t]))); drawTab(); }
+
+function drawTab() {
+  const b = $('#tabbody');
+  if (TAB === 'form') {
+    b.innerHTML = `<p class="sub" style="margin:0">กรอกตรงตาราง “ระเบียบวาระ” ด้านล่างได้เลย
+      — กด <b>＋ เพิ่มระเบียบวาระ</b> เพื่อสร้างวาระที่ 1, 2, 3 … แล้วกด <b>＋ ข้อย่อย</b> ในแต่ละวาระ</p>`;
+  }
+  if (TAB === 'paste') {
+    b.innerHTML = `
+      <div class="f"><label>วางข้อความวาระทั้งก้อน (จาก Word / อีเมล)</label>
+        <textarea id="pasted" placeholder="ระเบียบวาระการประชุม…
+วันที่ 19 ตุลาคม 2569 เวลา 13.30 – 16.00 น.
+ณ ห้องประชุม…
+
+ระเบียบวาระที่ 1 เรื่องประธานแจ้งที่ประชุมทราบ
+    1.1 ประธานแจ้งเพื่อทราบ
+ระเบียบวาระที่ 4 เรื่องเพื่อทราบ
+    4.1 สถานการณ์การเงินการคลัง…"></textarea></div>
+      <div class="row">
+        <button class="btn" onclick="doParse($('#pasted').value,'replace')">แยกวาระ (แทนที่ของเดิม)</button>
+        <button class="btn sec" onclick="doParse($('#pasted').value,'append')">ต่อท้ายของเดิม</button>
+      </div>`;
+  }
+  if (TAB === 'file') {
+    b.innerHTML = `
+      <div class="dz" id="dzfile"><b>ลากไฟล์วาระมาวาง หรือกดเพื่อเลือก</b>
+        รองรับ .docx และ .pdf</div>
+      <input type="file" id="fileinput" accept=".docx,.pdf" hidden>
+      <div class="note" style="margin-top:14px">⚠️ ข้อความจาก <b>PDF</b> อาจเพี้ยน (ฟอนต์ราชการเก็บสระ/วรรณยุกต์ไว้นอกมาตรฐาน)
+        ระบบแก้ให้อัตโนมัติเท่าที่รู้จัก แต่ <b>ต้องตรวจทานก่อนบันทึกเสมอ</b> — ถ้ามี .docx ให้ใช้ .docx</div>`;
+    const dz = $('#dzfile'), fi = $('#fileinput');
+    dz.onclick = () => fi.click();
+    fi.onchange = e => e.target.files[0] && readAgendaFile(e.target.files[0]);
+    hookDrop(dz, files => files[0] && readAgendaFile(files[0]));
+  }
+  if (TAB === 'folder') {
+    b.innerHTML = `
+      <div class="dz" id="dzfolder"><b>ลากโฟลเดอร์ PDF ทั้งชุดมาวาง</b>
+        ไฟล์ที่ขึ้นต้นด้วยเลขข้อ เช่น <code class="hl">4.1_xxx.pdf</code> จะถูกจับคู่เข้าข้อวาระให้เอง</div>
+      <input type="file" id="folderinput" webkitdirectory multiple hidden>
+      <div class="row" style="margin-top:12px">
+        <button class="btn sec sm" onclick="$('#folderinput').click()">เลือกโฟลเดอร์…</button>
+      </div>
+      <div id="fprog" style="margin-top:14px"></div>`;
+    const dz = $('#dzfolder'), fi = $('#folderinput');
+    dz.onclick = () => fi.click();
+    fi.onchange = e => bulkAttach([...e.target.files]);
+    hookDrop(dz, files => bulkAttach(files));
+  }
+}
+
+function hookDrop(el, cb) {
+  el.ondragover = e => { e.preventDefault(); el.classList.add('over'); };
+  el.ondragleave = () => el.classList.remove('over');
+  el.ondrop = async e => {
+    e.preventDefault(); el.classList.remove('over');
+    cb([...e.dataTransfer.files]);
+  };
+}
+
+async function readAgendaFile(f) {
+  toast('กำลังอ่านไฟล์…');
+  try {
+    const text = /\.docx$/i.test(f.name) ? await extractDocx(f) : await extractPdf(f);
+    doParse(text, 'replace');
+  } catch (e) { toast('อ่านไฟล์ไม่สำเร็จ: ' + e.message, true); }
+}
+
+function doParse(text, mode) {
+  if (!text || !text.trim()) { toast('ยังไม่มีข้อความ', true); return; }
+  const { items, head } = parseAgendaText(text);
+  if (!items.length) { toast('ไม่พบ “ระเบียบวาระที่ …” ในข้อความ', true); return; }
+  if (mode === 'replace') {
+    M.items = items;
+    for (const k of ['title', 'dateText', 'timeText', 'place', 'zoom'])
+      if (head[k] && !M[k]) M[k] = head[k];
+  } else {
+    M.items = [...(M.items || []), ...items];
+  }
+  drawEditor();
+  toast(`แยกได้ ${items.length} วาระ / ${items.reduce((n,i)=>n+i.children.length,0)} ข้อย่อย`);
+}
+
+/* ── ตารางวาระ ── */
+function drawItems() {
+  const box = $('#items');
+  if (!M.items.length) { box.innerHTML = `<div class="empty">ยังไม่มีระเบียบวาระ</div>`; return; }
+  box.innerHTML = M.items.map((it, i) => `
+    <div class="item">
+      <div class="hd">
+        <span style="font-size:13px;color:var(--muted);font-weight:600">ระเบียบวาระที่</span>
+        <input class="no" type="text" value="${esc(it.no)}" oninput="M.items[${i}].no=this.value">
+        <input class="ti" type="text" value="${esc(it.title)}"
+          placeholder="ชื่อวาระ เช่น เรื่องเพื่อทราบ" oninput="M.items[${i}].title=this.value">
+        <button class="iconbtn" onclick="moveItem(${i},-1)" title="เลื่อนขึ้น">↑</button>
+        <button class="iconbtn" onclick="moveItem(${i},1)" title="เลื่อนลง">↓</button>
+        <button class="iconbtn x" onclick="delItem(${i})" title="ลบวาระ">✕</button>
+      </div>
+      <div class="kids">
+        ${(it.children || []).map((c, j) => kidHtml(i, j, c)).join('')
+          || `<p class="sub" style="margin:4px 0">ยังไม่มีข้อย่อย</p>`}
+        <button class="btn sec sm" style="margin-top:8px" onclick="addKid(${i})">＋ ข้อย่อย</button>
+      </div>
+    </div>`).join('');
+
+  // ผูก dropzone ของแต่ละข้อย่อย
+  M.items.forEach((it, i) => (it.children || []).forEach((c, j) => {
+    const el = document.getElementById(`drop-${i}-${j}`);
+    if (el) hookDrop(el, files => files[0] && attachTo(i, j, files[0]));
+    const inp = document.getElementById(`fin-${i}-${j}`);
+    if (inp) inp.onchange = e => e.target.files[0] && attachTo(i, j, e.target.files[0]);
+  }));
+}
+
+function kidHtml(i, j, c) {
+  return `<div class="kid">
+    <input class="no" type="text" value="${esc(c.no)}" oninput="M.items[${i}].children[${j}].no=this.value">
+    <input class="ti" type="text" value="${esc(c.title)}" placeholder="ชื่อเรื่องข้อย่อย"
+      oninput="M.items[${i}].children[${j}].title=this.value">
+    <button class="iconbtn" onclick="moveKid(${i},${j},-1)">↑</button>
+    <button class="iconbtn" onclick="moveKid(${i},${j},1)">↓</button>
+    <button class="iconbtn x" onclick="delKid(${i},${j})">✕</button>
+    <div class="fileline">
+      ${c.url
+        ? `📎 <a href="${esc(c.url)}" target="_blank">${esc(c.name || 'ไฟล์แนบ')}</a>
+           <button class="btn sec sm" onclick="detach(${i},${j})">เอาไฟล์ออก</button>`
+        : `<span id="drop-${i}-${j}" style="border:1.5px dashed #cbd5e1;border-radius:8px;
+             padding:5px 12px;cursor:pointer" onclick="document.getElementById('fin-${i}-${j}').click()">
+             ⬆ ลาก PDF มาวาง / กดเลือกไฟล์</span>
+           <input type="file" id="fin-${i}-${j}" accept="application/pdf" hidden>`}
+    </div></div>`;
+}
+
+function addItem() {
+  M.items.push({ no: String(M.items.length + 1), title: '', children: [] });
+  drawItems();
+}
+function delItem(i) { if (confirm('ลบระเบียบวาระนี้?')) { M.items.splice(i, 1); drawItems(); } }
+function moveItem(i, d) {
+  const j = i + d; if (j < 0 || j >= M.items.length) return;
+  [M.items[i], M.items[j]] = [M.items[j], M.items[i]]; drawItems();
+}
+function addKid(i) {
+  const it = M.items[i];
+  it.children = it.children || [];
+  it.children.push({ no: `${it.no}.${it.children.length + 1}`, title: '', url: '', name: '' });
+  drawItems();
+}
+function delKid(i, j) { M.items[i].children.splice(j, 1); drawItems(); }
+function moveKid(i, j, d) {
+  const k = j + d, ch = M.items[i].children;
+  if (k < 0 || k >= ch.length) return;
+  [ch[j], ch[k]] = [ch[k], ch[j]]; drawItems();
+}
+function detach(i, j) {
+  M.items[i].children[j].url = ''; M.items[i].children[j].name = '';
+  drawItems(); save(0);
+}
+
+/* ── อัปโหลดไฟล์ ── */
+async function uploadFile(file, prefix) {
+  const fd = new FormData();
+  fd.append('file', file);
+  if (prefix) fd.append('prefix', prefix);
+  return api(`/api/meetings/${M.id}/files`, { method: 'POST', body: fd });
+}
+
+async function attachTo(i, j, file) {
+  const c = M.items[i].children[j];
+  const el = document.getElementById(`drop-${i}-${j}`);
+  if (el) el.textContent = '⏳ กำลังอัปโหลด…';
+  try {
+    await save(0);
+    const r = await uploadFile(file, c.no);
+    c.url = r.url; c.name = r.name;
+    await save(0);
+    drawItems();
+    toast('แนบไฟล์แล้ว');
+  } catch (e) { toast(e.message, true); drawItems(); }
+}
+
+/** ลากโฟลเดอร์ทั้งชุด: จับคู่ตามเลขข้อที่อยู่ต้นชื่อไฟล์ */
+async function bulkAttach(files) {
+  const pdfs = files.filter(f => /\.pdf$/i.test(f.name));
+  if (!pdfs.length) { toast('ไม่พบไฟล์ PDF', true); return; }
+  const flat = [];
+  M.items.forEach((it, i) => (it.children || []).forEach((c, j) => flat.push({ i, j, c })));
+
+  const matched = [], unmatched = [];
+  for (const f of pdfs) {
+    const m = f.name.match(/(\d+\.\d+(?:\.\d+)?)/);
+    const hit = m && flat.find(x => x.c.no === m[1]);
+    if (hit) matched.push({ f, hit }); else unmatched.push(f);
+  }
+  const prog = $('#fprog');
+  prog.innerHTML = `<p class="sub" style="margin:0">จับคู่ได้ ${matched.length} / ${pdfs.length} ไฟล์
+    ${unmatched.length ? `· ไม่พบข้อที่ตรงกัน ${unmatched.length} ไฟล์: ${unmatched.map(f=>esc(f.name)).join(', ')}` : ''}</p>
+    <div class="bar"><i id="pbar"></i></div>`;
+  if (!matched.length) return;
+
+  await save(0);
+  let done = 0;
+  for (const { f, hit } of matched) {
+    try {
+      const r = await uploadFile(f, hit.c.no);
+      hit.c.url = r.url; hit.c.name = r.name;
+    } catch (e) { toast(`${f.name}: ${e.message}`, true); }
+    done++;
+    $('#pbar').style.width = (done / matched.length * 100) + '%';
+  }
+  await save(0);
+  drawItems();
+  toast(`แนบไฟล์สำเร็จ ${done} ไฟล์`);
+}
+
+/* ── บันทึก / เผยแพร่ ── */
+async function save(loud) {
+  try {
+    M = await api('/api/meetings/' + M.id, { method: 'PUT', body: JSON.stringify(M) });
+    if (loud) toast('บันทึกแล้ว');
+    return M;
+  } catch (e) { toast('บันทึกไม่สำเร็จ: ' + e.message, true); throw e; }
+}
+
+async function copyHtml() {
+  const html = renderAgendaHtml(M);
+  try { await navigator.clipboard.writeText(html); toast('คัดลอก HTML แล้ว — วางใน TinyMCE ของ webnew ได้เลย'); }
+  catch { prompt('คัดลอกข้อความนี้', html); }
+}
+
+async function pushWebnew() {
+  if (!confirm('ส่งวาระนี้ขึ้น webnew.rh1.go.th ตอนนี้?\n(จะเห็นสาธารณะทันที)')) return;
+  try {
+    await save(0);
+    const r = await api(`/api/meetings/${M.id}/push`, { method: 'POST' });
+    if (r.newsId) {
+      M.newsId = r.newsId;
+      toast('ส่งขึ้น webnew แล้ว');
+      drawEditor();
+      window.open(r.newsUrl, '_blank');
+    } else {
+      toast('ส่งแล้ว แต่หา newsID ไม่เจอ — ตรวจที่หน้าจัดการข่าวของ webnew', true);
+    }
+  } catch (e) { toast(e.message, true); }
+}
+
+async function delMeeting() {
+  if (!confirm('ลบวาระนี้ออกจากระบบ?\n(ไฟล์ที่อัปโหลดแล้วและข่าวบน webnew จะยังอยู่)')) return;
+  await api('/api/meetings/' + M.id, { method: 'DELETE' });
+  location.hash = '#/';
+  toast('ลบแล้ว');
+}
+
+/* ═══════════════ start ═══════════════ */
+syncKeyBtn();
+route();
+</script>
+</body>
+</html>
