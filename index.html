@@ -220,6 +220,11 @@ function renderAgendaHtml(m) {
       out.push(`<p>${INDENT}${esc(c.no)} ${body}</p>`);
     }
   }
+  if ((m.attachments || []).length) {
+    out.push(`<p><strong>เอกสารประกอบ : หนังสือเชิญประชุม</strong></p>`);
+    for (const a of m.attachments)
+      out.push(`<p>${INDENT}<a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></p>`);
+  }
   return out.join('\n');
 }
 
@@ -429,6 +434,11 @@ function agendaView(m) {
         ? `<a href="${esc(c.url)}" target="_blank">${label}</a>` : label}</p>`);
     }
   }
+  if ((m.attachments || []).length) {
+    out.push('<p class="lv1">เอกสารประกอบ : หนังสือเชิญประชุม</p>');
+    for (const a of m.attachments)
+      out.push(`<p class="lv2">📎 <a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></p>`);
+  }
   if (!(m.items || []).length) out.push('<div class="empty">ยังไม่ได้ใส่ระเบียบวาระ</div>');
   return out.join('\n');
 }
@@ -458,7 +468,9 @@ function drawEditor() {
   <div class="card">
     <h2><span class="n">1</span>หัวเรื่องการประชุม</h2>
     <p class="sub">ข้อความ 4 บรรทัดนี้จะอยู่กลางหน้า เหนือแถวดอกจัน</p>
-    <div class="f"><label>ชื่อการประชุม (บรรทัดที่ 1)</label>
+    <div class="f"><label>ชื่อข่าวบน webnew (หัวข้อในตารางข่าว)</label>
+      <input type="text" id="h_newsname" value="${esc(M.newsName || M.title)}"></div>
+    <div class="f"><label>ชื่อการประชุม (บรรทัดที่ 1 กลางหน้า)</label>
       <input type="text" id="h_title" value="${esc(M.title)}"></div>
     <div class="grid">
       <div class="f"><label>ครั้งที่</label><input type="text" id="h_no" value="${esc(M.meetingNo)}" placeholder="1/2570"></div>
@@ -499,19 +511,27 @@ function drawEditor() {
   </div>
 
   <div class="card">
-    <h2><span class="n">4</span>เผยแพร่</h2>
+    <h2><span class="n">4</span>เอกสารประกอบ (ท้ายหน้า)</h2>
+    <p class="sub">เช่น หนังสือเชิญประชุมรายฉบับ — จะแสดงต่อจากระเบียบวาระข้อสุดท้าย</p>
+    <div id="atts"></div>
+    <button class="btn sec" onclick="addAtt()">＋ เพิ่มเอกสารประกอบ</button>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span>เผยแพร่</h2>
     <div class="row">
       <button class="btn" onclick="pushWebnew()">🚀 ส่งขึ้น webnew</button>
       ${M.newsId ? `<a class="btn sec" href="${WEBNEW}/news/${M.newsId}" target="_blank">ดูข่าวบน webnew ↗ (newsID ${esc(M.newsId)})</a>` : ''}
       <button class="btn danger sm" onclick="delMeeting()" style="margin-left:auto">🗑 ลบวาระนี้</button>
     </div>
     <p class="sub" style="margin:12px 0 0">
-      ระบบจะสร้างข่าวใหม่ในหมวด “ประชุม” ให้อัตโนมัติ หรืออัปเดตข่าวเดิมถ้าเคยส่งแล้ว
-      — <b>ตรวจหน้าจริงก่อนกดทุกครั้ง</b> เพราะจะเห็นสาธารณะทันที</p>
+      <b>หน้าวาระที่ใช้จริงคือข่าวบน webnew</b> — เว็บนี้เป็นตัวสร้างและคลังย้อนหลัง<br>
+      ยังไม่เคยส่ง = สร้างข่าวใหม่ในหมวด “ประชุม” · เคยส่งแล้ว = อัปเดตข่าวเดิมทับ
+      — <b>ตรวจหน้าจริงก่อนกดทุกครั้ง</b> เพราะเห็นสาธารณะทันที และ <b>ลบข่าวเองไม่ได้</b></p>
   </div>`;
 
   // bind หัวเรื่อง
-  const map = { h_title:'title', h_no:'meetingNo', h_date:'dateText',
+  const map = { h_newsname:'newsName', h_title:'title', h_no:'meetingNo', h_date:'dateText',
                 h_time:'timeText', h_place:'place', h_zoom:'zoom' };
   for (const [el, k] of Object.entries(map))
     $('#' + el).oninput = e => { M[k] = e.target.value; };
@@ -532,6 +552,7 @@ function drawEditor() {
 
   drawTab();
   drawItems();
+  drawAtts();
 }
 
 function setTab(t) { TAB = t; document.querySelectorAll('.tab').forEach(b =>
@@ -694,6 +715,54 @@ function moveKid(i, j, d) {
 function detach(i, j) {
   M.items[i].children[j].url = ''; M.items[i].children[j].name = '';
   drawItems(); save(0);
+}
+
+/* ── เอกสารประกอบท้ายหน้า ── */
+function drawAtts() {
+  M.attachments = M.attachments || [];
+  const box = $('#atts');
+  if (!box) return;
+  box.innerHTML = M.attachments.length ? M.attachments.map((a, k) => `
+    <div class="kid">
+      <input class="ti" type="text" value="${esc(a.title)}" placeholder="ชื่อเอกสาร"
+        oninput="M.attachments[${k}].title=this.value">
+      <button class="iconbtn" onclick="moveAtt(${k},-1)">↑</button>
+      <button class="iconbtn" onclick="moveAtt(${k},1)">↓</button>
+      <button class="iconbtn x" onclick="delAtt(${k})">✕</button>
+      <div class="fileline">
+        ${a.url
+          ? `📎 <a href="${esc(a.url)}" target="_blank">${esc(a.name || 'ไฟล์แนบ')}</a>
+             <button class="btn sec sm" onclick="M.attachments[${k}].url='';M.attachments[${k}].name='';drawAtts();save(0)">เอาไฟล์ออก</button>`
+          : `<span id="adrop-${k}" style="border:1.5px dashed #cbd5e1;border-radius:8px;
+               padding:5px 12px;cursor:pointer" onclick="document.getElementById('afin-${k}').click()">
+               ⬆ ลาก PDF มาวาง / กดเลือกไฟล์</span>
+             <input type="file" id="afin-${k}" accept="application/pdf" hidden>`}
+      </div>
+    </div>`).join('') : `<p class="sub" style="margin:4px 0">ยังไม่มีเอกสารประกอบ</p>`;
+
+  M.attachments.forEach((a, k) => {
+    const dz = document.getElementById(`adrop-${k}`);
+    if (dz) hookDrop(dz, files => files[0] && attachAtt(k, files[0]));
+    const inp = document.getElementById(`afin-${k}`);
+    if (inp) inp.onchange = e => e.target.files[0] && attachAtt(k, e.target.files[0]);
+  });
+}
+function addAtt() { (M.attachments = M.attachments || []).push({ title: '', url: '', name: '' }); drawAtts(); }
+function delAtt(k) { M.attachments.splice(k, 1); drawAtts(); }
+function moveAtt(k, d) {
+  const j = k + d; if (j < 0 || j >= M.attachments.length) return;
+  [M.attachments[k], M.attachments[j]] = [M.attachments[j], M.attachments[k]]; drawAtts();
+}
+async function attachAtt(k, file) {
+  const dz = document.getElementById(`adrop-${k}`);
+  if (dz) dz.textContent = '⏳ กำลังอัปโหลด…';
+  try {
+    await save(0);
+    const r = await uploadFile(file, '');
+    M.attachments[k].url = r.url; M.attachments[k].name = r.name;
+    if (!M.attachments[k].title) M.attachments[k].title = r.name;
+    await save(0); drawAtts(); toast('แนบไฟล์แล้ว');
+  } catch (e) { toast(e.message, true); drawAtts(); }
 }
 
 /* ── อัปโหลดไฟล์ ── */

@@ -37,6 +37,7 @@ export class AgendaStore {
         id          TEXT PRIMARY KEY,
         slug        TEXT,
         title       TEXT,
+        news_name   TEXT,
         org         TEXT,
         meeting_no  TEXT,
         date_text   TEXT,
@@ -51,6 +52,9 @@ export class AgendaStore {
         updated_at  TEXT
       )
     `);
+    // ตารางเดิมที่สร้างก่อนมีฟิลด์นี้ ต้องเติมเอง (CREATE TABLE IF NOT EXISTS ไม่เติมให้)
+    try { this.sql.exec('ALTER TABLE meetings ADD COLUMN news_name TEXT'); } catch (e) { /* มีแล้ว */ }
+    try { this.sql.exec('ALTER TABLE meetings ADD COLUMN attachments TEXT'); } catch (e) { /* มีแล้ว */ }
   }
 
   rowToMeeting(r) {
@@ -58,6 +62,7 @@ export class AgendaStore {
       id: r.id,
       slug: r.slug,
       title: r.title,
+      newsName: r.news_name,
       org: r.org,
       meetingNo: r.meeting_no,
       dateText: r.date_text,
@@ -66,6 +71,7 @@ export class AgendaStore {
       zoom: r.zoom,
       agendaPdf: r.agenda_pdf ? JSON.parse(r.agenda_pdf) : null,
       items: r.items ? JSON.parse(r.items) : [],
+      attachments: r.attachments ? JSON.parse(r.attachments) : [],
       newsId: r.news_id,
       status: r.status,
       createdAt: r.created_at,
@@ -104,6 +110,7 @@ export class AgendaStore {
     const m = {
       slug: body.slug ?? prev?.slug ?? id,
       title: body.title ?? prev?.title ?? '',
+      newsName: body.newsName ?? prev?.newsName ?? '',
       org: body.org ?? prev?.org ?? '',
       meetingNo: body.meetingNo ?? prev?.meetingNo ?? '',
       dateText: body.dateText ?? prev?.dateText ?? '',
@@ -112,21 +119,23 @@ export class AgendaStore {
       zoom: body.zoom ?? prev?.zoom ?? '',
       agendaPdf: body.agendaPdf !== undefined ? body.agendaPdf : prev?.agendaPdf ?? null,
       items: body.items ?? prev?.items ?? [],
+      attachments: body.attachments ?? prev?.attachments ?? [],
       newsId: body.newsId !== undefined ? body.newsId : prev?.newsId ?? null,
       status: body.status ?? prev?.status ?? 'draft',
     };
     this.sql.exec(
-      `INSERT INTO meetings (id,slug,title,org,meeting_no,date_text,time_text,place,zoom,agenda_pdf,items,news_id,status,created_at,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      `INSERT INTO meetings (id,slug,title,news_name,org,meeting_no,date_text,time_text,place,zoom,agenda_pdf,items,attachments,news_id,status,created_at,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
        ON CONFLICT(id) DO UPDATE SET
-         slug=excluded.slug, title=excluded.title, org=excluded.org,
+         slug=excluded.slug, title=excluded.title, news_name=excluded.news_name, org=excluded.org,
          meeting_no=excluded.meeting_no, date_text=excluded.date_text,
          time_text=excluded.time_text, place=excluded.place, zoom=excluded.zoom,
          agenda_pdf=excluded.agenda_pdf, items=excluded.items,
+         attachments=excluded.attachments,
          news_id=excluded.news_id, status=excluded.status, updated_at=excluded.updated_at`,
-      id, m.slug, m.title, m.org, m.meetingNo, m.dateText, m.timeText, m.place, m.zoom,
+      id, m.slug, m.title, m.newsName, m.org, m.meetingNo, m.dateText, m.timeText, m.place, m.zoom,
       m.agendaPdf ? JSON.stringify(m.agendaPdf) : null,
-      JSON.stringify(m.items), m.newsId, m.status,
+      JSON.stringify(m.items), JSON.stringify(m.attachments), m.newsId, m.status,
       prev?.createdAt ?? now, now
     );
     return this.get(id);
@@ -267,6 +276,12 @@ export function renderAgendaHtml(m) {
       out.push(`<p>${INDENT}${esc(c.no)} ${body}</p>`);
     }
   }
+  if ((m.attachments || []).length) {
+    out.push(`<p><strong>เอกสารประกอบ : หนังสือเชิญประชุม</strong></p>`);
+    for (const a of m.attachments) {
+      out.push(`<p>${INDENT}<a href="${esc(a.url)}" target="_blank">${esc(a.title)}</a></p>`);
+    }
+  }
   return out.join('\n');
 }
 
@@ -276,7 +291,7 @@ async function pushToWebnew(env, m) {
   const base = env.WEBNEW_BASE;
   const detail = renderAgendaHtml(m);
   const fd = new URLSearchParams();
-  fd.set('newsName', m.title);
+  fd.set('newsName', m.newsName || m.title);
   fd.set('topicID', '27'); // 27 = ประชุม
   fd.set('newsDetail', detail);
   fd.set('newslink', '');
@@ -296,7 +311,7 @@ async function pushToWebnew(env, m) {
   let newsId = m.newsId;
   if (!newsId) {
     // ของใหม่: หา newsID ล่าสุดที่ชื่อตรงกัน จากตารางข่าว
-    newsId = await findNewsIdByName(base, m.title);
+    newsId = await findNewsIdByName(base, m.newsName || m.title);
   }
   return { ok: res.status < 400, status: res.status, newsId };
 }
